@@ -39,12 +39,18 @@ Switch with `PROFILE=dev`, or mix any piece with `TRANSPORT=mqtt|zmq`, `QUEUE=ka
 # 1) zero dependencies beyond Python: ZeroMQ + SQLite
 pip install -r requirements.txt -r requirements-dev.txt
 make demo          # bridge + simulator + ELT + report, ~10 s
+make dashboard     # FastAPI dashboard at http://127.0.0.1:8000
 make test          # 23 tests, no services required
 
 # 2) full stack: Mosquitto + Kafka + PostgreSQL + all services
 make up            # then: docker compose exec etl python -m iotpipe.etl.report
 make down
 
+
+After `make demo`, `make dashboard` visualizes the local `data/demo.db` pipeline
+with stage counts, ingestion quality, device health, hourly metrics, anomalies,
+rejected messages and lineage. For the PostgreSQL profile, use
+`PROFILE=dev DB_URL=postgresql://iot:change-me@localhost:5432/iot make dashboard`.
 # 3) Kubernetes locally (free)
 make kind
 ```

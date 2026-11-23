@@ -1,4 +1,4 @@
-.PHONY: install demo test lint etl report up down logs demo-dev kind clean
+.PHONY: install demo test lint etl report dashboard up down logs demo-dev kind clean
 PY ?= python
 
 install:           ## install python deps
@@ -18,6 +18,9 @@ etl:               ## run the ELT once against the current PROFILE
 
 report:
 	$(PY) -m iotpipe.etl.report
+
+dashboard:
+	DB_URL=$${DB_URL:-sqlite:///data/demo.db} $(PY) -m iotpipe.dashboard
 
 up:                ## full stack: Mosquitto + Kafka + PostgreSQL + bridge + consumer + simulator + ETL loop
 	cp -n .env.example .env || true

@@ -1,0 +1,55 @@
+# Local equivalent of Dataplex "aspects": ownership, description and sensitivity for every column.
+# The ETL run FAILS the catalog check if any staging/analytics column is undocumented.
+defaults:
+  owner: data-engineering
+tables:
+  stg_readings:
+    description: Typed and de-duplicated sensor readings.
+    columns:
+      reading_id:    {description: Unique message id (idempotency key), sensitivity: internal}
+      device_id:     {description: Sensor identifier, sensitivity: internal}
+      event_ts:      {description: Event time (UTC ISO-8601), sensitivity: public}
+      event_hour:    {description: Event time truncated to the hour, sensitivity: public}
+      temperature_c: {description: Temperature in Celsius, sensitivity: public}
+      humidity_pct:  {description: Relative humidity in percent, sensitivity: public}
+      pressure_hpa:  {description: Barometric pressure in hPa, sensitivity: public}
+      battery_v:     {description: Battery voltage, sensitivity: internal}
+      fw_version:    {description: Firmware version, sensitivity: internal}
+      is_plausible:  {description: "1 when the reading passes business range checks", sensitivity: public}
+      ingested_at:   {description: Load time into the raw layer, sensitivity: internal}
+  fct_hourly_metrics:
+    description: Hourly aggregates per device.
+    columns:
+      device_id:         {description: Sensor identifier, sensitivity: internal}
+      event_hour:        {description: Hour bucket (UTC), sensitivity: public}
+      n_readings:        {description: Readings in the bucket, sensitivity: public}
+      avg_temperature_c: {description: Mean temperature, sensitivity: public}
+      min_temperature_c: {description: Minimum temperature, sensitivity: public}
+      max_temperature_c: {description: Maximum temperature, sensitivity: public}
+      avg_humidity_pct:  {description: Mean humidity, sensitivity: public}
+      min_battery_v:     {description: Lowest battery voltage in the bucket, sensitivity: internal}
+  dim_device_health:
+    description: Last-known state of each device.
+    columns:
+      device_id:      {description: Sensor identifier, sensitivity: internal}
+      first_seen:     {description: First event time, sensitivity: public}
+      last_seen:      {description: Last event time, sensitivity: public}
+      total_readings: {description: Number of staged readings, sensitivity: public}
+      last_battery_v: {description: Latest battery voltage, sensitivity: internal}
+      fw_version:     {description: Latest firmware version, sensitivity: internal}
+      status:         {description: "ok or low_battery (< 3.4 V)", sensitivity: internal}
+  fct_anomalies:
+    description: Out-of-range readings and temperature jumps.
+    columns:
+      device_id:    {description: Sensor identifier, sensitivity: internal}
+      event_ts:     {description: Event time, sensitivity: public}
+      anomaly_type: {description: out_of_range or temperature_jump, sensitivity: public}
+      value:        {description: Offending value or delta, sensitivity: public}
+  fct_ingestion_quality:
+    description: Row-count reconciliation across layers.
+    columns:
+      raw_rows:           {description: Rows in the raw layer, sensitivity: public}
+      rejected_rows:      {description: Messages sent to the dead-letter table, sensitivity: public}
+      staged_rows:        {description: Rows surviving staging, sensitivity: public}
+      duplicates_removed: {description: Rows removed by de-duplication, sensitivity: public}
+      implausible_rows:   {description: Rows flagged is_plausible = 0, sensitivity: public}

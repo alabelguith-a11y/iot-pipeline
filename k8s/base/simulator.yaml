@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: simulator, namespace: iot, labels: {app: simulator}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: simulator}}
+  template:
+    metadata: {labels: {app: simulator}}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001}
+      containers:
+        - name: simulator
+          image: iot-pipeline:local
+          imagePullPolicy: IfNotPresent
+          command: [python, -m, iotpipe.simulator, --devices, "4", --per-device, "120", --rate, "20", --loop]
+          envFrom:
+            - configMapRef: {name: iot-config}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 150m, memory: 128Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}

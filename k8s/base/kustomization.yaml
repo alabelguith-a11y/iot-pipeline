@@ -1,0 +1,4 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: iot
+resources: [namespace.yaml, configmap.yaml, bridge.yaml, consumer.yaml, simulator.yaml, etl-cronjob.yaml]

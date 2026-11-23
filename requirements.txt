@@ -1,0 +1,5 @@
+paho-mqtt>=2.0
+pyzmq>=25
+confluent-kafka>=2.3
+psycopg[binary]>=3.1
+pyyaml>=6

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+data/*.db*
+.venv/
+.ruff_cache/
+.pytest_cache/
+firmware/esp32/secrets.h

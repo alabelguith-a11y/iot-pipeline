@@ -1,0 +1,101 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install ruff
+      - run: ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest -q
+      - name: End-to-end demo (ZeroMQ + SQLite, no services)
+        run: python scripts/demo_local.py
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: {POSTGRES_USER: iot, POSTGRES_PASSWORD: ci, POSTGRES_DB: iot}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U iot" --health-interval 5s --health-retries 10
+    env:
+      PROFILE: test
+      DB_URL: postgresql://iot:ci@localhost:5432/iot   # same ELT, PostgreSQL dialect
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Load simulated data and run ELT on PostgreSQL
+        run: |
+          python - <<'PY'
+          from iotpipe import loader
+          from iotpipe.bridge import process
+          from iotpipe.db import connect
+          from iotpipe.simulator import generate
+          import os
+          db = connect(os.environ["DB_URL"]); loader.ensure_raw_tables(db)
+          class S:
+              ok = []
+              def accept(self, r): self.ok.append(r)
+              def reject(self, why, raw): loader.insert_dead_letter(db, why, raw)
+          s = S()
+          for dev, payload, _ in generate(): process(f"sensors/{dev}/reading", payload, s)
+          loader.insert_raw(db, s.ok)
+          PY
+          python -m iotpipe.etl.runner
+          python -m iotpipe.etl.report
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Kubernetes manifests
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          kubectl kustomize k8s/base  | ./kubeconform -strict -summary
+          kubectl kustomize k8s/infra | ./kubeconform -strict -summary
+      - name: Validate docker-compose
+        run: docker compose config -q
+
+  image:
+    needs: [lint, test, postgres-integration, manifests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/${{ github.repository }}:latest,ghcr.io/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

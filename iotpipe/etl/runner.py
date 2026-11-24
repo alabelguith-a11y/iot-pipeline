@@ -13,7 +13,7 @@ import sys
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..config import load
@@ -78,7 +78,7 @@ def run_assertions(db: DB, run_id: str, sql_dir: Path = SQL_DIR) -> list[dict]:
 
 
 def run(db: DB, sql_dir: Path = SQL_DIR, catalog_path: Path | None = None) -> dict:
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S-") + uuid.uuid4().hex[:6]
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S-") + uuid.uuid4().hex[:6]
     governance.ensure_tables(db)
     models = toposort(discover(sql_dir))
     lineage, log = [], []

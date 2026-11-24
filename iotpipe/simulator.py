@@ -22,7 +22,7 @@ import math
 import random
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from . import transport
 from .config import load
@@ -40,7 +40,7 @@ def generate(devices: int = 4, per_device: int = 120, step_s: int = 60, seed: in
     """Return a list of (device_id, payload_bytes, label). Deterministic for a given seed."""
     rng = random.Random(seed)
     rates = DEFECTS if defects is None else defects
-    end = end or datetime.now(timezone.utc).replace(microsecond=0)
+    end = end or datetime.now(UTC).replace(microsecond=0)
     start = end - timedelta(seconds=step_s * per_device)
     out: list[tuple[str, bytes, str]] = []
     for d in range(devices):

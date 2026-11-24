@@ -10,7 +10,8 @@ from __future__ import annotations
 import queue
 import threading
 import time
-from typing import Iterator, Optional
+from collections.abc import Iterator
+from typing import Optional
 
 from .config import Settings
 

@@ -1,7 +1,7 @@
 """End-to-end ELT on in-memory SQLite: simulator -> bridge validation -> raw -> staging -> analytics."""
 import unittest
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from iotpipe import loader
 from iotpipe.bridge import process
@@ -33,7 +33,7 @@ class EtlTests(unittest.TestCase):
     def setUp(self):
         self.db = connect("sqlite:///:memory:")
         loader.ensure_raw_tables(self.db)
-        self.end = datetime(2026, 1, 1, 12, tzinfo=timezone.utc)
+        self.end = datetime(2026, 1, 1, 12, tzinfo=UTC)
 
     def test_clean_data_passes_everything(self):
         load_messages(self.db, generate(defects={}, end=self.end))

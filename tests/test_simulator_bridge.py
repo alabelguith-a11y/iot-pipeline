@@ -1,5 +1,6 @@
 import unittest
 from collections import Counter
+from datetime import UTC
 
 from iotpipe.bridge import process
 from iotpipe.simulator import generate
@@ -18,13 +19,13 @@ class FakeSink:
 
 class SimulatorBridgeTests(unittest.TestCase):
     def test_deterministic(self):
-        from datetime import datetime, timezone
-        end = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        from datetime import datetime
+        end = datetime(2026, 1, 1, tzinfo=UTC)
         self.assertEqual(generate(seed=1, end=end), generate(seed=1, end=end))
 
     def test_clean_run_has_no_rejects(self):
         sink = FakeSink()
-        for dev, payload, label in generate(defects={}):
+        for dev, payload, _label in generate(defects={}):
             process(f"sensors/{dev}/reading", payload, sink)
         self.assertEqual(sink.rejected, [])
         self.assertEqual(len(sink.accepted), 4 * 120)
